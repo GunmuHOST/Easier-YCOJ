@@ -1,0 +1,195 @@
+// ==UserScript==
+// @name		Easier YCOJ
+// @version		0.1.0
+// @description 让 YCOJ 用起来更加顺手
+// @author		zhizhi_c
+// @match		*://10.1.143.118/*
+// @namespace	10.1.143.118
+// @require     https://cdn.jsdelivr.net/npm/turndown@7/dist/turndown.min.js
+// ==/UserScript==
+
+'use strict';
+
+function HtmlToMarkdown(html) {
+	const turndownService = new TurndownService();
+	// 规则1：行内公式（用 $...$ 包裹）
+	turndownService.addRule('mathSvg', {
+		filter: node => node.nodeName === 'svg' && node.getAttribute('role') === 'img' && node.querySelector('title'),
+		replacement: (content, node) => {
+			const title = node.querySelector('title');
+			return title ? '$' + title.textContent.trim() + '$' : '';
+		}
+	});
+
+	// 规则2：块级公式（用 $$...$$ 包裹，独立成行）
+	turndownService.addRule('blockMath', {
+		filter: (node) => {return node.nodeName === 'DIV' && node.classList.contains('math-block');},
+		replacement: (content, node) => {return '\n\n$$' + node.textContent.trim() + '$$\n\n';}// 块级公式前后加换行，且用 $$ 包裹
+	});
+	turndownService.addRule('cleanCodeBlock', {
+		filter: (node) => {
+			return node.nodeName === 'PRE' && node.querySelector('code'); // 匹配 pre > code
+		},
+		replacement: function (content, node) {
+			const code = node.querySelector('code'); // 获取内部的 code 元素
+			if (!code) return ''; // 使用 textContent 获取纯文本，并去除首尾多余换行/空格
+			let codeText = code.textContent;
+			// 去除每行开头多余的缩进（如果整个块缩进过多，可以整体 trim）
+			// 方法：按行分割，计算最小缩进，然后统一去除
+			const lines = codeText.split('\n');
+			// 去除空行或仅空白行
+			const nonEmptyLines = lines.filter(line => line.trim() !== '');
+			if (nonEmptyLines.length === 0) return '```\n\n```';
+			// 计算最小缩进（空格数）
+			const minIndent = Math.min(...nonEmptyLines.map(line => line.match(/^ */)[0].length));
+			// 去除每行的缩进
+			const dedentedLines = lines.map(line => {
+				if (line.trim() === '') return '';
+				return line.slice(minIndent);
+			});
+			const cleanedCode = dedentedLines.join('\n').trim();
+			// 返回围栏代码块
+			return '\n```\n' + cleanedCode + '\n```\n';
+		}
+	});
+	return turndownService.turndown(html);
+}
+
+let statement = "";
+function GetMarkdown() {
+	const headers = document.querySelectorAll("h4");
+	if (headers.length === 0) return;
+
+	headers.forEach(function (header) {
+		let description = header.nextElementSibling;
+		if (!description) return;
+		// 转换逻辑
+		let md = HtmlToMarkdown(description.cloneNode(true));
+		statement += md;
+
+		// ---- 标题 flex 容器 ----
+		header.style.display = "flex";
+		header.style.justifyContent = "space-between";
+		header.style.alignItems = "center";
+		header.style.margin = "10px 0";
+		header.style.position = "relative";
+
+		// ---- 保留原有内容 ----
+		let contentWrapper = document.createElement("span");
+		contentWrapper.style.cssText = `
+            flex: 1;
+            min-width: 0;
+            margin-right: 10px;`;
+		while (header.firstChild) contentWrapper.appendChild(header.firstChild);
+		header.appendChild(contentWrapper);
+
+		// ---- 创建按钮（毛玻璃 + 标准 Markdown 图标） ----
+		let button = document.createElement("button");
+		button.type = "button";
+		button.style.cssText = `
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            cursor: pointer;
+            font-size: 13px;
+            white-space: nowrap;
+            flex-shrink: 0;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.10);
+            transition: all 0.25s ease;
+            color: #222;
+            font-weight: 500;
+            position: relative;
+            overflow: hidden;
+            vertical-align: middle;`;
+
+		// ----- 图标：标准 Markdown (Font Awesome) -----
+		const svgIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+		svgIcon.setAttribute("viewBox", "0 0 640 512");
+		svgIcon.setAttribute("width", "20");
+		svgIcon.setAttribute("height", "16"); // 保持比例
+		svgIcon.setAttribute("fill", "currentColor");
+		// 直接使用你提供的路径
+		svgIcon.innerHTML = `<path d="M593.8 59.1l-547.6 0C20.7 59.1 0 79.8 0 105.2L0 406.7c0 25.5 20.7 46.2 46.2 46.2l547.7 0c25.5 0 46.2-20.7 46.1-46.1l0-301.6c0-25.4-20.7-46.1-46.2-46.1zM338.5 360.6l-61.5 0 0-120-61.5 76.9-61.5-76.9 0 120-61.7 0 0-209.2 61.5 0 61.5 76.9 61.5-76.9 61.5 0 0 209.2 .2 0zm135.3 3.1l-92.3-107.7 61.5 0 0-104.6 61.5 0 0 104.6 61.5 0-92.2 107.7z"/>`;
+		const iconWrapper = document.createElement("span");
+		iconWrapper.className = "custom-md-icon";
+		iconWrapper.style.cssText = `
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease;
+        `;
+		iconWrapper.appendChild(svgIcon);
+
+		// ----- 文字 -----
+		const textSpan = document.createElement("span");
+		textSpan.textContent = "Markdown 视图";
+
+		// 组装按钮
+		button.appendChild(iconWrapper);
+		button.appendChild(textSpan);
+		header.appendChild(button);
+
+		// ---- 创建文本框 ----
+		let output = document.createElement("textarea");
+		output.style.cssText = `
+            width: 100%;
+            height: 150px;
+            margin-top: 8px;
+            display: none;
+            font-family: monospace;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            padding: 8px;
+            box-sizing: border-box;
+            background: #fff;
+            border-radius: 4px;
+            resize: vertical;
+        `;
+		header.parentNode.insertBefore(output, header.nextSibling);
+
+		// ---- 按钮点击事件（转换 + 视觉切换） ----
+		button.addEventListener("click", function (e) {
+			e.stopPropagation();
+
+			this.classList.toggle("pressed");
+			const layer = this.querySelector(".custom-glass-layer");
+			if (layer) layer.style.opacity = this.classList.contains("pressed") ? "1" : "0";
+
+			output.value = md;
+			output.style.display = output.style.display === "none" ? "block" : "none";
+		});
+
+		// ---- 动态样式 ----
+		const styleId = "custom-md-glass-style";
+		if (!document.getElementById(styleId)) {
+			const style = document.createElement("style");
+			style.id = styleId;
+			style.textContent = `
+                button.pressed {
+                    box-shadow: inset 0 4px 10px rgba(0,0,0,0.15);
+                    background: rgba(255,255,255,0.35);
+                    transform: scale(0.96);
+                }
+                button.pressed .custom-md-icon {
+                    transform: translateY(2px);
+                }
+                button:not(.pressed):hover {
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+                    transform: translateY(-1px);
+                }
+            `;
+			document.head.appendChild(style);
+		}
+	});
+}
+
+if (window.location.pathname.match("problem/[0-9]")) {
+	GetMarkdown();
+	$('.ui.orange.button').after($('<a href=https://cpret.online/?lang=zh&q=' + encodeURIComponent(param) + ' class="ui button" target="_blank" style="background-color: #f39c12; color: #fff;">查询原题</a>'));
+}
