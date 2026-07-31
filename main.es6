@@ -157,23 +157,7 @@ async function initHTML2MarkDown() {
 */
 
 function GetMarkdown() {
-	const headers = document.querySelectorAll("h4");
-	if (headers.length === 0) return;
-
 	headers.forEach(function (header) {
-		let description = header.nextElementSibling;
-		if (!description) return;
-		// 转换逻辑
-		let md = HtmlToMarkdown(description.cloneNode(true));
-		statement += md;
-
-		// ---- 标题 flex 容器 ----
-		header.style.display = "flex";
-		header.style.justifyContent = "space-between";
-		header.style.alignItems = "center";
-		header.style.margin = "10px 0";
-		header.style.position = "relative";
-
 		// ---- 创建按钮（毛玻璃 + 标准 Markdown 图标） ----
 		let button = document.createElement("button");
 		button.type = "button";
