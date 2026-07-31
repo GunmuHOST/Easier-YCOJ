@@ -24,7 +24,7 @@ function HtmlToMarkdown(html) {
 	// 规则2：块级公式（用 $$...$$ 包裹，独立成行）
 	turndownService.addRule('blockMath', {
 		filter: (node) => {return node.nodeName === 'DIV' && node.classList.contains('math-block');},
-		replacement: (content, node) => {return '\n\n$$' + node.textContent.trim() + '$$\n\n';}// 块级公式前后加换行，且用 $$ 包裹
+		replacement: (content, node) => {return '\n\n$$\n' + node.textContent.trim() + '\n$$\n\n';}// 块级公式前后加换行，且用 $$ 包裹
 	});
 	turndownService.addRule('cleanCodeBlock', {
 		filter: (node) => {
@@ -191,5 +191,5 @@ function GetMarkdown() {
 
 if (window.location.pathname.match("problem/[0-9]")) {
 	GetMarkdown();
-	$('.ui.orange.button').after($('<a href=https://cpret.online/?lang=zh&q=' + encodeURIComponent(param) + ' class="ui button" target="_blank" style="background-color: #f39c12; color: #fff;">查询原题</a>'));
+	$('.ui.orange.button').after($('<a href=https://cpret.online/?lang=zh&q=' + encodeURIComponent(statement) + ' class="ui button" target="_blank" style="background-color: #f39c12; color: #fff;"> 查询原题</a>'));
 }
