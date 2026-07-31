@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name		Easier YCOJ
-// @version		0.1.0
+// @version		0.2.0
 // @description 让 YCOJ 用起来更加顺手
 // @author		zhizhi_c
 // @match		*://10.1.143.118/*
@@ -10,22 +10,21 @@
 
 'use strict';
 
-function HtmlToMarkdown(html) {
-	const turndownService = new TurndownService();
-	turndownService.addRule('mathSvg', {
-		filter: node => node.nodeName === 'svg' && node.getAttribute('role') === 'img' && node.querySelector('title'),
-		replacement: (content, node) => {
-			const title = node.querySelector('title');
-			return title ? '$' + title.textContent.trim() + '$' : '';
-		}
-	}); //行内 LaTeX 公式（用 $...$ 包裹）
-	// 规则2：
-	turndownService.addRule('blockMath', {
-		filter: (node) => {return node.nodeName === 'DIV' && node.classList.contains('math-block');},
-		replacement: (content, node) => {return '\n\n$$\n' + node.textContent.trim() + '\n$$\n\n';}// 块级公式前后加换行，且用 $$ 包裹
-	}); //LaTeX 公式行（用 $$...$$ 包裹，独立成行）
-	turndownService.addRule('cleanCodeBlock', {
-		filter: (node) => {return node.nodeName === 'PRE' && node.querySelector('code');}, // 匹配 pre > code
+const turndownServer = new TurndownService();
+
+function InitTurndown() {
+	// 规则1：行内公式（用 $...$ 包裹）
+	turndownServer.addRule('inline-math', {
+		filter: node => { return node.matches('span.mjpage') && /^MathJax-SVG-\d+-Title$/.test(node.querySelector('title')?.id ?? ''); },
+		replacement: (content, node) => { return '$' + node.querySelector('title').textContent.trim() + '$'; }
+	});
+	// 规则2：块级公式（用 $$...$$ 包裹，独立成行）
+	turndownServer.addRule('block-math', {
+		filter: node => { return node.matches('span.mjpage__block') && /^MathJax-SVG-\d+-Title$/.test(node.querySelector('title')?.id ?? ''); },
+		replacement: (content, node) => { return '\n\n$$\n' + node.textContent.trim() + '\n$$\n\n'; }// 块级公式前后加换行，且用 $$ 包裹
+	});
+	turndownServer.addRule('block-code', {
+		filter: node => { return node.nodeName === 'PRE' && node.querySelector('code'); }, // 匹配 pre > code
 		replacement: function (content, node) {
 			const code = node.querySelector('code'); // 获取内部的 code 元素
 			if (!code) return ''; // 使用 textContent 获取纯文本，并去除首尾多余换行/空格
@@ -47,112 +46,111 @@ function HtmlToMarkdown(html) {
 			// 返回围栏代码块
 			return '\n```\n' + cleanedCode + '\n```\n';
 		}
-	}); //代码行
-	return turndownService.turndown(html);
+	});
 }
 
 /*
 async function initHTML2MarkDown() {
-    OJBetter.common.turndownService = new TurndownService({ bulletListMarker: '-' });
+	OJBetter.common.turndownService = new TurndownService({ bulletListMarker: '-' });
 
-    // 保留原始
-    OJBetter.common.turndownService.keep(['del']);
+	// 保留原始
+	OJBetter.common.turndownService.keep(['del']);
 
-    OJBetter.common.turndownService.addRule('removeByClass', {
-        filter: function (node) {
-            return node.classList.contains('html2md-panel') ||
-                node.classList.contains('mdViewContent') ||
-                node.classList.contains('translateDiv') ||
-                node.classList.contains('OJBetter_MiniTranslateButton') ||
-                node.classList.contains('OJBetter_taskStatementTranslationAnchor') ||
-                node.classList.contains('div-btn-copy') ||
-                node.classList.contains('btn-copy') ||
-                node.classList.contains('ojb-overlay') ||
-                node.classList.contains('monaco-editor') ||
-                node.classList.contains('text-hidden') ||
-                node.nodeName === 'SCRIPT' ||
-                node.nodeName === 'STYLE';
-        },
-        replacement: function () {
-            return '';
-        }
-    });
+	OJBetter.common.turndownService.addRule('removeByClass', {
+		filter: function (node) {
+			return node.classList.contains('html2md-panel') ||
+				node.classList.contains('mdViewContent') ||
+				node.classList.contains('translateDiv') ||
+				node.classList.contains('OJBetter_MiniTranslateButton') ||
+				node.classList.contains('OJBetter_taskStatementTranslationAnchor') ||
+				node.classList.contains('div-btn-copy') ||
+				node.classList.contains('btn-copy') ||
+				node.classList.contains('ojb-overlay') ||
+				node.classList.contains('monaco-editor') ||
+				node.classList.contains('text-hidden') ||
+				node.nodeName === 'SCRIPT' ||
+				node.nodeName === 'STYLE';
+		},
+		replacement: function () {
+			return '';
+		}
+	});
 
-    // inline math
-    OJBetter.common.turndownService.addRule('inline-math', {
-        filter: function (node, options) {
-            return node.tagName.toLowerCase() == "span" && node.className == "katex";
-        },
-        replacement: function (content, node) {
-            var latex = $(node).find('annotation').text();
-            // 替换防止 < >
-            latex = latex.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            return "$" + latex + "$";
-        }
-    });
+	// inline math
+	OJBetter.common.turndownService.addRule('inline-math', {
+		filter: function (node, options) {
+			return node.tagName.toLowerCase() == "span" && node.className == "katex";
+		},
+		replacement: function (content, node) {
+			var latex = $(node).find('annotation').text();
+			// 替换防止 < >
+			latex = latex.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+			return "$" + latex + "$";
+		}
+	});
 
-    // block math
-    OJBetter.common.turndownService.addRule('block-math', {
-        filter: function (node, options) {
-            return node.tagName.toLowerCase() == "span" && node.className == "katex-display";
-        },
-        replacement: function (content, node) {
-            var latex = $(node).find('annotation').text();
-            latex = latex.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            return "\n$$\n" + latex + "\n$$\n";
-        }
-    });
+	// block math
+	OJBetter.common.turndownService.addRule('block-math', {
+		filter: function (node, options) {
+			return node.tagName.toLowerCase() == "span" && node.className == "katex-display";
+		},
+		replacement: function (content, node) {
+			var latex = $(node).find('annotation').text();
+			latex = latex.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+			return "\n$$\n" + latex + "\n$$\n";
+		}
+	});
 
-    // pre
-    OJBetter.common.turndownService.addRule('pre', {
-        filter: function (node, options) {
-            return node.tagName.toLowerCase() == "pre";
-        },
-        replacement: function (content, node) {
-            const toFencedCode = code => "```\n" + String(code).replace(/\n?$/, "\n") + "```\n";
-            // AtCoder 会同时保留高亮代码块和隐藏的原始复制块，只转换后者以避免重复且保留换行。
-            if (node.classList.contains('prettyprint')) {
-                const sourceCode = $(node).nextAll('pre').first().filter('.source-code-for-copy');
-                if (sourceCode.length > 0) return "";
-                const code = OJB_getCodeFromPre(node) || node.textContent;
-                return toFencedCode(code);
-            }
-            if (node.classList.contains('source-code-for-copy')) {
-                return toFencedCode(node.textContent);
-            }
-            return toFencedCode(content);
-        }
-    });
+	// pre
+	OJBetter.common.turndownService.addRule('pre', {
+		filter: function (node, options) {
+			return node.tagName.toLowerCase() == "pre";
+		},
+		replacement: function (content, node) {
+			const toFencedCode = code => "```\n" + String(code).replace(/\n?$/, "\n") + "```\n";
+			// AtCoder 会同时保留高亮代码块和隐藏的原始复制块，只转换后者以避免重复且保留换行。
+			if (node.classList.contains('prettyprint')) {
+				const sourceCode = $(node).nextAll('pre').first().filter('.source-code-for-copy');
+				if (sourceCode.length > 0) return "";
+				const code = OJB_getCodeFromPre(node) || node.textContent;
+				return toFencedCode(code);
+			}
+			if (node.classList.contains('source-code-for-copy')) {
+				return toFencedCode(node.textContent);
+			}
+			return toFencedCode(content);
+		}
+	});
 
-    // bordertable
-    OJBetter.common.turndownService.addRule('bordertable', {
-        filter: 'table',
-        replacement: function (content, node) {
-            if (node.classList.contains('table')) {
-                var output = [],
-                    thead = '',
-                    trs = node.querySelectorAll('tr');
-                if (trs.length > 0) {
-                    var ths = trs[0].querySelectorAll('th, td');
-                    if (ths.length > 0) {
-                        thead = '| ' + Array.from(ths).map(th => OJBetter.common.turndownService.turndown(th.innerHTML.trim())).join(' | ') + ' |\n'
-                        thead += '| ' + Array.from(ths).map(() => ' --- ').join('|') + ' |\n';
-                    }
-                }
-                var rows = node.querySelectorAll('tr');
-                Array.from(rows).forEach(function (row, i) {
-                    if (i > 0) {
-                        var cells = row.querySelectorAll('td,th');
-                        var trow = '| ' + Array.from(cells).map(cell => OJBetter.common.turndownService.turndown(cell.innerHTML.trim())).join(' | ') + ' |';
-                        output.push(trow);
-                    }
-                });
-                return thead + output.join('\n');
-            } else {
-                return content;
-            }
-        }
-    });
+	// bordertable
+	OJBetter.common.turndownService.addRule('bordertable', {
+		filter: 'table',
+		replacement: function (content, node) {
+			if (node.classList.contains('table')) {
+				var output = [],
+					thead = '',
+					trs = node.querySelectorAll('tr');
+				if (trs.length > 0) {
+					var ths = trs[0].querySelectorAll('th, td');
+					if (ths.length > 0) {
+						thead = '| ' + Array.from(ths).map(th => OJBetter.common.turndownService.turndown(th.innerHTML.trim())).join(' | ') + ' |\n'
+						thead += '| ' + Array.from(ths).map(() => ' --- ').join('|') + ' |\n';
+					}
+				}
+				var rows = node.querySelectorAll('tr');
+				Array.from(rows).forEach(function (row, i) {
+					if (i > 0) {
+						var cells = row.querySelectorAll('td,th');
+						var trow = '| ' + Array.from(cells).map(cell => OJBetter.common.turndownService.turndown(cell.innerHTML.trim())).join(' | ') + ' |';
+						output.push(trow);
+					}
+				});
+				return thead + output.join('\n');
+			} else {
+				return content;
+			}
+		}
+	});
 };
 */
 
@@ -182,58 +180,20 @@ function GetMarkdown() {
             position: relative;
             overflow: hidden;
             vertical-align: middle;`;
-
-		// ----- 图标：标准 Markdown (Font Awesome) -----
-		const svgIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-		svgIcon.setAttribute("viewBox", "0 0 640 512");
-		svgIcon.setAttribute("width", "20");
-		svgIcon.setAttribute("height", "16"); // 保持比例
-		svgIcon.setAttribute("fill", "#b752d5");
-		// 直接使用你提供的路径
-		svgIcon.innerHTML = `<path d="M593.8 59.1l-547.6 0C20.7 59.1 0 79.8 0 105.2L0 406.7c0 25.5 20.7 46.2 46.2 46.2l547.7 0c25.5 0 46.2-20.7 46.1-46.1l0-301.6c0-25.4-20.7-46.1-46.2-46.1zM338.5 360.6l-61.5 0 0-120-61.5 76.9-61.5-76.9 0 120-61.7 0 0-209.2 61.5 0 61.5 76.9 61.5-76.9 61.5 0 0 209.2 .2 0zm135.3 3.1l-92.3-107.7 61.5 0 0-104.6 61.5 0 0 104.6 61.5 0-92.2 107.7z"/>`;
-		const iconWrapper = document.createElement("span");
-		iconWrapper.className = "custom-md-icon";
-		iconWrapper.style.cssText = `
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.2s ease;
-        `;
-		iconWrapper.appendChild(svgIcon);
-
-		// 组装按钮
-		button.appendChild(iconWrapper);
-		header.appendChild(button);
-
-		// ---- 创建文本框 ----
-		let output = document.createElement("textarea");
-		output.style.cssText = `
-            width: 100%;
-            height: 150px;
-            margin-top: 8px;
-            display: none;
-            font-family: monospace;
-            font-size: 14px;
-            border: 1px solid #ccc;
-            padding: 8px;
-            box-sizing: border-box;
-            background: #fff;
-            border-radius: 4px;
-            resize: vertical;
-        `;
-		header.parentNode.insertBefore(output, header.nextSibling);
-
-		// ---- 按钮点击事件（转换 + 视觉切换） ----
 		button.addEventListener("click", function (e) {
 			e.stopPropagation();
-
 			this.classList.toggle("pressed");
 			const layer = this.querySelector(".custom-glass-layer");
 			if (layer) layer.style.opacity = this.classList.contains("pressed") ? "1" : "0";
-
 			output.value = md;
 			output.style.display = output.style.display === "none" ? "block" : "none";
 		});
+
+		button.insertAdjacentHTML('beforeend', `<svg viewBox="0 0 640 512" width="40" height="32"><defs><radialGradient id="metalArt" cx="30%" cy="30%" r="70%" fx="30%" fy="30%"><stop offset="0%" stop-color="#B8B8B8"></stop><stop offset="40%" stop-color="#909090"></stop><stop offset="75%" stop-color="#707070"></stop><stop offset="100%" stop-color="#585858"></stop></radialGradient></defs><path d="M338.5 360.6l-61.5 0 0-120-61.5 76.9-61.5-76.9 0 120-61.7 0 0-209.2 61.5 0 61.5 76.9 61.5-76.9 61.5 0 0 209.2 .2 0zm135.3 3.1l-92.3-107.7 61.5 0 0-104.6 61.5 0 0 104.6 61.5 0-92.2 107.7z" fill="url(#metalArt)" stroke="#ffffff" stroke-width="0.5" stroke-linecap="round" stroke-linejoin="round"></path><svg>`);
+		header.appendChild(button);
+
+		// ---- 按钮点击事件（转换 + 视觉切换） ----
+
 
 		// ---- 动态样式 ----
 		const styleId = "custom-md-glass-style";
@@ -259,15 +219,19 @@ function GetMarkdown() {
 	});
 }
 
+//----main----
+
+InitTurndown();
+
 if (window.location.pathname.match("problem/[0-9]")) {
-	const headers = document.querySelectorAll("h4");
+	const headers = document.querySelectorAll("h4.ui.top.attached.block.header");
 	let statement = "";
 	for (let header of headers) {
 		let description = header.nextElementSibling;
 		if (!description) continue;
-		let md = HtmlToMarkdown(description.cloneNode(true));
+		let md = turndownServer.turndown(description.cloneNode(true));
 		statement += md;
 		header.style = `display: flex; justify-content: space-between; align-items: center`;
 	}
-	$('.ui.orange.button').after($('<a href=https://cpret.online/?lang=zh&q=' + encodeURIComponent(statement) + ' class="ui button" target="_blank" style="background-color: #f39c12; color: #fff;"> 查询原题</a>'));
+	$('.ui.orange.button').after($('<a class="ui olive button" href=https://cpret.online/?lang=zh&q=' + encodeURIComponent(statement) + ' target="_blank"> 查询原题</a>'));
 }
