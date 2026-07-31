@@ -12,24 +12,20 @@
 
 function HtmlToMarkdown(html) {
 	const turndownService = new TurndownService();
-	// 规则1：行内公式（用 $...$ 包裹）
 	turndownService.addRule('mathSvg', {
 		filter: node => node.nodeName === 'svg' && node.getAttribute('role') === 'img' && node.querySelector('title'),
 		replacement: (content, node) => {
 			const title = node.querySelector('title');
 			return title ? '$' + title.textContent.trim() + '$' : '';
 		}
-	});
-
-	// 规则2：块级公式（用 $$...$$ 包裹，独立成行）
+	}); //行内 LaTeX 公式（用 $...$ 包裹）
+	// 规则2：
 	turndownService.addRule('blockMath', {
 		filter: (node) => {return node.nodeName === 'DIV' && node.classList.contains('math-block');},
 		replacement: (content, node) => {return '\n\n$$\n' + node.textContent.trim() + '\n$$\n\n';}// 块级公式前后加换行，且用 $$ 包裹
-	});
+	}); //LaTeX 公式行（用 $$...$$ 包裹，独立成行）
 	turndownService.addRule('cleanCodeBlock', {
-		filter: (node) => {
-			return node.nodeName === 'PRE' && node.querySelector('code'); // 匹配 pre > code
-		},
+		filter: (node) => {return node.nodeName === 'PRE' && node.querySelector('code');}, // 匹配 pre > code
 		replacement: function (content, node) {
 			const code = node.querySelector('code'); // 获取内部的 code 元素
 			if (!code) return ''; // 使用 textContent 获取纯文本，并去除首尾多余换行/空格
@@ -51,11 +47,115 @@ function HtmlToMarkdown(html) {
 			// 返回围栏代码块
 			return '\n```\n' + cleanedCode + '\n```\n';
 		}
-	});
+	}); //代码行
 	return turndownService.turndown(html);
 }
 
-let statement = "";
+/*
+async function initHTML2MarkDown() {
+    OJBetter.common.turndownService = new TurndownService({ bulletListMarker: '-' });
+
+    // 保留原始
+    OJBetter.common.turndownService.keep(['del']);
+
+    OJBetter.common.turndownService.addRule('removeByClass', {
+        filter: function (node) {
+            return node.classList.contains('html2md-panel') ||
+                node.classList.contains('mdViewContent') ||
+                node.classList.contains('translateDiv') ||
+                node.classList.contains('OJBetter_MiniTranslateButton') ||
+                node.classList.contains('OJBetter_taskStatementTranslationAnchor') ||
+                node.classList.contains('div-btn-copy') ||
+                node.classList.contains('btn-copy') ||
+                node.classList.contains('ojb-overlay') ||
+                node.classList.contains('monaco-editor') ||
+                node.classList.contains('text-hidden') ||
+                node.nodeName === 'SCRIPT' ||
+                node.nodeName === 'STYLE';
+        },
+        replacement: function () {
+            return '';
+        }
+    });
+
+    // inline math
+    OJBetter.common.turndownService.addRule('inline-math', {
+        filter: function (node, options) {
+            return node.tagName.toLowerCase() == "span" && node.className == "katex";
+        },
+        replacement: function (content, node) {
+            var latex = $(node).find('annotation').text();
+            // 替换防止 < >
+            latex = latex.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            return "$" + latex + "$";
+        }
+    });
+
+    // block math
+    OJBetter.common.turndownService.addRule('block-math', {
+        filter: function (node, options) {
+            return node.tagName.toLowerCase() == "span" && node.className == "katex-display";
+        },
+        replacement: function (content, node) {
+            var latex = $(node).find('annotation').text();
+            latex = latex.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            return "\n$$\n" + latex + "\n$$\n";
+        }
+    });
+
+    // pre
+    OJBetter.common.turndownService.addRule('pre', {
+        filter: function (node, options) {
+            return node.tagName.toLowerCase() == "pre";
+        },
+        replacement: function (content, node) {
+            const toFencedCode = code => "```\n" + String(code).replace(/\n?$/, "\n") + "```\n";
+            // AtCoder 会同时保留高亮代码块和隐藏的原始复制块，只转换后者以避免重复且保留换行。
+            if (node.classList.contains('prettyprint')) {
+                const sourceCode = $(node).nextAll('pre').first().filter('.source-code-for-copy');
+                if (sourceCode.length > 0) return "";
+                const code = OJB_getCodeFromPre(node) || node.textContent;
+                return toFencedCode(code);
+            }
+            if (node.classList.contains('source-code-for-copy')) {
+                return toFencedCode(node.textContent);
+            }
+            return toFencedCode(content);
+        }
+    });
+
+    // bordertable
+    OJBetter.common.turndownService.addRule('bordertable', {
+        filter: 'table',
+        replacement: function (content, node) {
+            if (node.classList.contains('table')) {
+                var output = [],
+                    thead = '',
+                    trs = node.querySelectorAll('tr');
+                if (trs.length > 0) {
+                    var ths = trs[0].querySelectorAll('th, td');
+                    if (ths.length > 0) {
+                        thead = '| ' + Array.from(ths).map(th => OJBetter.common.turndownService.turndown(th.innerHTML.trim())).join(' | ') + ' |\n'
+                        thead += '| ' + Array.from(ths).map(() => ' --- ').join('|') + ' |\n';
+                    }
+                }
+                var rows = node.querySelectorAll('tr');
+                Array.from(rows).forEach(function (row, i) {
+                    if (i > 0) {
+                        var cells = row.querySelectorAll('td,th');
+                        var trow = '| ' + Array.from(cells).map(cell => OJBetter.common.turndownService.turndown(cell.innerHTML.trim())).join(' | ') + ' |';
+                        output.push(trow);
+                    }
+                });
+                return thead + output.join('\n');
+            } else {
+                return content;
+            }
+        }
+    });
+};
+*/
+
 function GetMarkdown() {
 	const headers = document.querySelectorAll("h4");
 	if (headers.length === 0) return;
@@ -74,15 +174,6 @@ function GetMarkdown() {
 		header.style.margin = "10px 0";
 		header.style.position = "relative";
 
-		// ---- 保留原有内容 ----
-		let contentWrapper = document.createElement("span");
-		contentWrapper.style.cssText = `
-            flex: 1;
-            min-width: 0;
-            margin-right: 10px;`;
-		while (header.firstChild) contentWrapper.appendChild(header.firstChild);
-		header.appendChild(contentWrapper);
-
 		// ---- 创建按钮（毛玻璃 + 标准 Markdown 图标） ----
 		let button = document.createElement("button");
 		button.type = "button";
@@ -100,7 +191,7 @@ function GetMarkdown() {
             -webkit-backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 10px;
-            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.10);
+            box-shadow: 0 6px 24px #d79df4;
             transition: all 0.25s ease;
             color: #222;
             font-weight: 500;
@@ -113,7 +204,7 @@ function GetMarkdown() {
 		svgIcon.setAttribute("viewBox", "0 0 640 512");
 		svgIcon.setAttribute("width", "20");
 		svgIcon.setAttribute("height", "16"); // 保持比例
-		svgIcon.setAttribute("fill", "currentColor");
+		svgIcon.setAttribute("fill", "#b752d5");
 		// 直接使用你提供的路径
 		svgIcon.innerHTML = `<path d="M593.8 59.1l-547.6 0C20.7 59.1 0 79.8 0 105.2L0 406.7c0 25.5 20.7 46.2 46.2 46.2l547.7 0c25.5 0 46.2-20.7 46.1-46.1l0-301.6c0-25.4-20.7-46.1-46.2-46.1zM338.5 360.6l-61.5 0 0-120-61.5 76.9-61.5-76.9 0 120-61.7 0 0-209.2 61.5 0 61.5 76.9 61.5-76.9 61.5 0 0 209.2 .2 0zm135.3 3.1l-92.3-107.7 61.5 0 0-104.6 61.5 0 0 104.6 61.5 0-92.2 107.7z"/>`;
 		const iconWrapper = document.createElement("span");
@@ -126,13 +217,8 @@ function GetMarkdown() {
         `;
 		iconWrapper.appendChild(svgIcon);
 
-		// ----- 文字 -----
-		const textSpan = document.createElement("span");
-		textSpan.textContent = "Markdown 视图";
-
 		// 组装按钮
 		button.appendChild(iconWrapper);
-		button.appendChild(textSpan);
 		header.appendChild(button);
 
 		// ---- 创建文本框 ----
@@ -190,6 +276,14 @@ function GetMarkdown() {
 }
 
 if (window.location.pathname.match("problem/[0-9]")) {
-	GetMarkdown();
+	const headers = document.querySelectorAll("h4");
+	let statement = "";
+	for (let header of headers) {
+		let description = header.nextElementSibling;
+		if (!description) continue;
+		let md = HtmlToMarkdown(description.cloneNode(true));
+		statement += md;
+		header.style = `display: flex; justify-content: space-between; align-items: center`;
+	}
 	$('.ui.orange.button').after($('<a href=https://cpret.online/?lang=zh&q=' + encodeURIComponent(statement) + ' class="ui button" target="_blank" style="background-color: #f39c12; color: #fff;"> 查询原题</a>'));
 }
