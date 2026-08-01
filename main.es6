@@ -154,84 +154,44 @@ async function initHTML2MarkDown() {
 };
 */
 
-function GetMarkdown() {
-	headers.forEach(function (header) {
-		// ---- 创建按钮（毛玻璃 + 标准 Markdown 图标） ----
-		let button = document.createElement("button");
-		button.type = "button";
-		button.style.cssText = `
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 14px;
-            cursor: pointer;
-            font-size: 13px;
-            white-space: nowrap;
-            flex-shrink: 0;
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 10px;
-            box-shadow: 0 6px 24px #d79df4;
-            transition: all 0.25s ease;
-            color: #222;
-            font-weight: 500;
-            position: relative;
-            overflow: hidden;
-            vertical-align: middle;`;
-		button.addEventListener("click", function (e) {
-			e.stopPropagation();
-			this.classList.toggle("pressed");
-			const layer = this.querySelector(".custom-glass-layer");
-			if (layer) layer.style.opacity = this.classList.contains("pressed") ? "1" : "0";
-			output.value = md;
-			output.style.display = output.style.display === "none" ? "block" : "none";
-		});
-
-		button.insertAdjacentHTML('beforeend', `<svg viewBox="0 0 640 512" width="40" height="32"><defs><radialGradient id="metalArt" cx="30%" cy="30%" r="70%" fx="30%" fy="30%"><stop offset="0%" stop-color="#B8B8B8"></stop><stop offset="40%" stop-color="#909090"></stop><stop offset="75%" stop-color="#707070"></stop><stop offset="100%" stop-color="#585858"></stop></radialGradient></defs><path d="M338.5 360.6l-61.5 0 0-120-61.5 76.9-61.5-76.9 0 120-61.7 0 0-209.2 61.5 0 61.5 76.9 61.5-76.9 61.5 0 0 209.2 .2 0zm135.3 3.1l-92.3-107.7 61.5 0 0-104.6 61.5 0 0 104.6 61.5 0-92.2 107.7z" fill="url(#metalArt)" stroke="#ffffff" stroke-width="0.5" stroke-linecap="round" stroke-linejoin="round"></path><svg>`);
-		header.appendChild(button);
-
-		// ---- 按钮点击事件（转换 + 视觉切换） ----
-
-
-		// ---- 动态样式 ----
-		const styleId = "custom-md-glass-style";
-		if (!document.getElementById(styleId)) {
-			const style = document.createElement("style");
-			style.id = styleId;
-			style.textContent = `
-                button.pressed {
-                    box-shadow: inset 0 4px 10px rgba(0,0,0,0.15);
-                    background: rgba(255,255,255,0.35);
-                    transform: scale(0.96);
-                }
-                button.pressed .custom-md-icon {
-                    transform: translateY(2px);
-                }
-                button:not(.pressed):hover {
-                    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
-                    transform: translateY(-1px);
-                }
-            `;
-			document.head.appendChild(style);
-		}
-	});
-}
-
 //----main----
 
 InitTurndown();
 
 if (window.location.pathname.match("problem/[0-9]")) {
-	const headers = document.querySelectorAll("h4.ui.top.attached.block.header");
+	document.head.insertAdjacentHTML('beforeend', `<style>
+	.viewMarkdown {display: inline-flex; border: #ffffff; border-radius: 30px; box-shadow: 0 5px 10px #d79df4; transition: all 0.25s ease; position: relative;}
+	.viewMarkdown.pressed {box-shadow: 0 2px 5px #d79df4,inset 0 4px 10px rgba(0,0,0,0.15); background: rgba(255,255,255,0.35);transform: scale(0.96) translateY(3px);}
+	.viewMarkdown:not(.pressed):hover {box-shadow: 0 8px 20px #d79df4;transform: translateY(-4px);}</style>`);
+
 	let statement = "";
+	const headers = document.querySelectorAll("h4.ui.top.attached.block.header");
 	for (let header of headers) {
 		let description = header.nextElementSibling;
 		if (!description) continue;
 		let md = turndownServer.turndown(description.cloneNode(true));
 		statement += md;
-		header.style = `display: flex; justify-content: space-between; align-items: center`;
+
+		// ---- 创建文本框 ----
+		let output = document.createElement("textarea");
+		output.className = "ui bottom attached segment font-content";
+		output.innerHTML = md;
+		output.style = `font-family: monospace; height: 200px; resize: vertical; display: none`;
+		header.after(output);
+
+		// ---- 创建按钮（标准 Markdown 图标） ----
+		let button = document.createElement("button");
+		button.classList.add('viewMarkdown');
+		button.insertAdjacentHTML('beforeend', `<svg viewBox="0 0 640 512" width="35" height="28"><defs><radialGradient id="metalArt" cx="30%" cy="30%" r="70%" fx="30%" fy="30%"><stop offset="0%" stop-color="#B8B8B8"></stop><stop offset="40%" stop-color="#909090"></stop><stop offset="75%" stop-color="#707070"></stop><stop offset="100%" stop-color="#585858"></stop></radialGradient></defs><path d="M338.5 360.6l-61.5 0 0-120-61.5 76.9-61.5-76.9 0 120-61.7 0 0-209.2 61.5 0 61.5 76.9 61.5-76.9 61.5 0 0 209.2 .2 0zm135.3 3.1l-92.3-107.7 61.5 0 0-104.6 61.5 0 0 104.6 61.5 0-92.2 107.7z" fill="url(#metalArt)" stroke="#ffffff" stroke-width="0.5" stroke-linecap="round" stroke-linejoin="round"></path><svg>`);
+
+		button.onclick = e => {
+			e.stopPropagation();
+			button.classList.toggle("pressed");
+			output.style.display = output.style.display === "none" ? "block" : "none";
+		};//按钮点击事件（转换 + 视觉切换）
+
+		header.style = `display: flex; justify-content: space-between; align-items: center`; // ---- 标题 flex 容器 ----
+		header.appendChild(button);
 	}
 	$('.ui.orange.button').after($('<a class="ui olive button" href=https://cpret.online/?lang=zh&q=' + encodeURIComponent(statement) + ' target="_blank"> 查询原题</a>'));
 }
