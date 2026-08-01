@@ -76,31 +76,6 @@ async function initHTML2MarkDown() {
 		}
 	});
 
-	// inline math
-	OJBetter.common.turndownService.addRule('inline-math', {
-		filter: function (node, options) {
-			return node.tagName.toLowerCase() == "span" && node.className == "katex";
-		},
-		replacement: function (content, node) {
-			var latex = $(node).find('annotation').text();
-			// 替换防止 < >
-			latex = latex.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-			return "$" + latex + "$";
-		}
-	});
-
-	// block math
-	OJBetter.common.turndownService.addRule('block-math', {
-		filter: function (node, options) {
-			return node.tagName.toLowerCase() == "span" && node.className == "katex-display";
-		},
-		replacement: function (content, node) {
-			var latex = $(node).find('annotation').text();
-			latex = latex.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-			return "\n$$\n" + latex + "\n$$\n";
-		}
-	});
-
 	// pre
 	OJBetter.common.turndownService.addRule('pre', {
 		filter: function (node, options) {
