@@ -6,6 +6,7 @@
 // @match		*://10.1.143.118/*
 // @namespace	10.1.143.118
 // @require     https://cdn.jsdelivr.net/npm/turndown@7/dist/turndown.min.js
+// @require     file:///E:\main.js
 // ==/UserScript==
 
 'use strict';
@@ -148,10 +149,10 @@ if (window.location.pathname.match("problem/[0-9]")) {
 		statement += md;
 
 		// ---- 创建文本框 ----
-		let output = document.createElement("textarea");
+		let output = document.createElement("pre");
 		output.className = "ui bottom attached segment font-content";
 		output.innerHTML = md;
-		output.style = `font-family: monospace; height: 200px; resize: vertical; display: none`;
+		output.style = `font-family: Fira Code; margin-top: 0; margin-bottom: 0; display: none`;
 		header.after(output);
 
 		// ---- 创建按钮（标准 Markdown 图标） ----
