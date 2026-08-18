@@ -14,16 +14,14 @@ async function InitTurndown() {
 	turndownServer.addRule('block-math', {
 		filter: node => { return node.matches('span.mjpage__block') && /^MathJax-SVG-\d+-Title$/.test(node.querySelector('title')?.id ?? ''); },
 		replacement: (content, node) => { return '\n\n$$\n' + node.textContent.trim() + '\n$$\n\n'; }// 块级公式前后加换行，且用 $$ 包裹
-	}); // 规则1：行内公式（用 $...$ 包裹）
+	}); // 规则 1：公式块（用 $$...$$ 包裹，独立成行）
 	turndownServer.addRule('inline-math', {
 		filter: node => { return node.matches('span.mjpage') && /^MathJax-SVG-\d+-Title$/.test(node.querySelector('title')?.id ?? ''); },
 		replacement: (content, node) => { return '$' + node.textContent.trim() + '$'; }
-	}); // 规则2：公式块（用 $$...$$ 包裹，独立成行）
+	}); // 规则 2：行内公式（用 $...$ 包裹）
 	turndownServer.addRule('block-code', {
 		filter: node => { return node.nodeName === 'PRE' },
-		replacement: (content, node) => {
-			return '\n```\n' + node.textContent.trim() + '\n```\n';
-		}
+		replacement: (content, node) => { return '\n```\n' + node.textContent.trim() + '\n```\n'; }
 	});
 }
 
@@ -95,8 +93,9 @@ InitTurndown();
 if (window.location.pathname.match("problem/[0-9]")) {
 	document.head.insertAdjacentHTML('beforeend', `<style>
 	.viewMarkdown {display: inline-flex; border: #ffffff; border-radius: 30px; box-shadow: 0 5px 10px #d79df4; transition: all 0.25s ease; position: relative;}
-	.viewMarkdown.pressed {box-shadow: 0 2px 5px #d79df4,inset 0 4px 10px rgba(0,0,0,0.15); background: rgba(255,255,255,0.35);transform: scale(0.96) translateY(3px);}
-	.viewMarkdown:not(.pressed):hover {box-shadow: 0 8px 20px #d79df4;transform: translateY(-4px);}</style>`);
+	.viewMarkdown.pressed {box-shadow: 0 2px 5px #d79df4,inset 0 4px 10px rgba(0,0,0,0.15); background: rgba(255,255,255,0.35); transform: scale(0.95) translateY(2px);}
+	.viewMarkdown:not(.pressed):hover {box-shadow: 0 8px 20px #d79df4; transform: scale(1.05) translateY(-2px);}
+	.viewMarkdown:hover.pressed {box-shadow: 0 6px 14px #d79df4,inset 0 8px 20px rgba(0,0,0,0.15); transform: scale(0.87) translateY(3px);}</style>`);
 
 	let statement = "";
 	const headers = document.querySelectorAll("h4.ui.top.attached.block.header");
@@ -127,5 +126,5 @@ if (window.location.pathname.match("problem/[0-9]")) {
 		header.style = `display: flex; justify-content: space-between; align-items: center`; // ---- 标题 flex 容器 ----
 		header.appendChild(button);
 	}
-	$('.ui.orange.button').after($('<a class="ui olive button" href=https://cpret.online/?lang=zh&q=' + encodeURIComponent(statement) + ' target="_blank"> 查询原题</a>'));
+	$('.ui.orange.button').after($('<a class="ui olive button" href=https://cpret.online/?lang=zh&q=' + encodeURIComponent(statement) + ' target="_blank">查询原题</a>'));
 }
