@@ -17,7 +17,7 @@ function InitTurndown() {
 	// 规则1：行内公式（用 $...$ 包裹）
 	turndownServer.addRule('inline-math', {
 		filter: node => { return node.matches('span.mjpage') && /^MathJax-SVG-\d+-Title$/.test(node.querySelector('title')?.id ?? ''); },
-		replacement: (content, node) => { return '$' + node.querySelector('title').textContent.trim() + '$'; }
+		replacement: (content, node) => { return '$' + node.textContent.trim() + '$'; }
 	});
 	// 规则2：块级公式（用 $$...$$ 包裹，独立成行）
 	turndownServer.addRule('block-math', {
@@ -25,27 +25,27 @@ function InitTurndown() {
 		replacement: (content, node) => { return '\n\n$$\n' + node.textContent.trim() + '\n$$\n\n'; }// 块级公式前后加换行，且用 $$ 包裹
 	});
 	turndownServer.addRule('block-code', {
-		filter: node => { return node.nodeName === 'PRE' && node.querySelector('code'); }, // 匹配 pre > code
-		replacement: function (content, node) {
-			const code = node.querySelector('code'); // 获取内部的 code 元素
-			if (!code) return ''; // 使用 textContent 获取纯文本，并去除首尾多余换行/空格
-			let codeText = code.textContent;
-			// 去除每行开头多余的缩进（如果整个块缩进过多，可以整体 trim）
-			// 方法：按行分割，计算最小缩进，然后统一去除
-			const lines = codeText.split('\n');
-			// 去除空行或仅空白行
-			const nonEmptyLines = lines.filter(line => line.trim() !== '');
-			if (nonEmptyLines.length === 0) return '```\n\n```';
-			// 计算最小缩进（空格数）
-			const minIndent = Math.min(...nonEmptyLines.map(line => line.match(/^ */)[0].length));
-			// 去除每行的缩进
-			const dedentedLines = lines.map(line => {
-				if (line.trim() === '') return '';
-				return line.slice(minIndent);
-			});
-			const cleanedCode = dedentedLines.join('\n').trim();
-			// 返回围栏代码块
-			return '\n```\n' + cleanedCode + '\n```\n';
+		filter: node => { return node.nodeName === 'PRE' },
+		replacement: (content, node) => {
+			// const code = node.querySelector('code'); // 获取内部的 code 元素
+			// if (!code) return ''; // 使用 textContent 获取纯文本，并去除首尾多余换行/空格
+			// let codeText = code.textContent;
+			// // 去除每行开头多余的缩进（如果整个块缩进过多，可以整体 trim）
+			// // 方法：按行分割，计算最小缩进，然后统一去除
+			// const lines = codeText.split('\n');
+			// // 去除空行或仅空白行
+			// const nonEmptyLines = lines.filter(line => line.trim() !== '');
+			// if (nonEmptyLines.length === 0) return '```\n\n```';
+			// // 计算最小缩进（空格数）
+			// const minIndent = Math.min(...nonEmptyLines.map(line => line.match(/^ */)[0].length));
+			// // 去除每行的缩进
+			// const dedentedLines = lines.map(line => {
+			// 	if (line.trim() === '') return '';
+			// 	return line.slice(minIndent);
+			// });
+			// const cleanedCode = dedentedLines.join('\n').trim();
+			// // 返回围栏代码块
+			return '\n```\n' + node.textContent.trim() + '\n```\n';
 		}
 	});
 }
@@ -164,7 +164,7 @@ if (window.location.pathname.match("problem/[0-9]")) {
 			e.stopPropagation();
 			button.classList.toggle("pressed");
 			output.style.display = output.style.display === "none" ? "block" : "none";
-		};//按钮点击事件（转换 + 视觉切换）
+		}; //按钮点击事件（转换 + 视觉切换）
 
 		header.style = `display: flex; justify-content: space-between; align-items: center`; // ---- 标题 flex 容器 ----
 		header.appendChild(button);
