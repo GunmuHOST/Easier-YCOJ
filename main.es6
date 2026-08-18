@@ -1,12 +1,13 @@
 // ==UserScript==
 // @name		Easier YCOJ
-// @version		0.2.0
+// @version		0.2.1
 // @description 让 YCOJ 用起来更加顺手
 // @author		zhizhi_c
 // @match		*://10.1.143.118/*
 // @namespace	10.1.143.118
 // @require     https://cdn.jsdelivr.net/npm/turndown@7/dist/turndown.min.js
-// @require     file:///E:\main.js
+// @updateURL   https://raw.githubusercontent.com/GunmuHOST/Easier-YCOJ/refs/heads/main/main.es6
+// @downloadURL   https://raw.githubusercontent.com/GunmuHOST/Easier-YCOJ/refs/heads/main/main.es6
 // ==/UserScript==
 
 'use strict';
