@@ -6,25 +6,19 @@
 // @match		*://10.1.143.118/*
 // @namespace	10.1.143.118
 // @require     https://cdn.jsdelivr.net/npm/turndown@7/dist/turndown.min.js
-// @updateURL   https://raw.githubusercontent.com/GunmuHOST/Easier-YCOJ/refs/heads/main/main.es6
-// @downloadURL   https://raw.githubusercontent.com/GunmuHOST/Easier-YCOJ/refs/heads/main/main.es6
 // ==/UserScript==
 
 'use strict';
 
-const turndownServer = new TurndownService();
-
-function InitTurndown() {
-	// 规则1：行内公式（用 $...$ 包裹）
-	turndownServer.addRule('inline-math', {
-		filter: node => { return node.matches('span.mjpage') && /^MathJax-SVG-\d+-Title$/.test(node.querySelector('title')?.id ?? ''); },
-		replacement: (content, node) => { return '$' + node.textContent.trim() + '$'; }
-	});
-	// 规则2：块级公式（用 $$...$$ 包裹，独立成行）
+async function InitTurndown() {
 	turndownServer.addRule('block-math', {
 		filter: node => { return node.matches('span.mjpage__block') && /^MathJax-SVG-\d+-Title$/.test(node.querySelector('title')?.id ?? ''); },
 		replacement: (content, node) => { return '\n\n$$\n' + node.textContent.trim() + '\n$$\n\n'; }// 块级公式前后加换行，且用 $$ 包裹
-	});
+	}); // 规则1：行内公式（用 $...$ 包裹）
+	turndownServer.addRule('inline-math', {
+		filter: node => { return node.matches('span.mjpage') && /^MathJax-SVG-\d+-Title$/.test(node.querySelector('title')?.id ?? ''); },
+		replacement: (content, node) => { return '$' + node.textContent.trim() + '$'; }
+	}); // 规则2：公式块（用 $$...$$ 包裹，独立成行）
 	turndownServer.addRule('block-code', {
 		filter: node => { return node.nodeName === 'PRE' },
 		replacement: (content, node) => {
@@ -57,27 +51,6 @@ async function initHTML2MarkDown() {
 		},
 		replacement: function () {
 			return '';
-		}
-	});
-
-	// pre
-	OJBetter.common.turndownService.addRule('pre', {
-		filter: function (node, options) {
-			return node.tagName.toLowerCase() == "pre";
-		},
-		replacement: function (content, node) {
-			const toFencedCode = code => "```\n" + String(code).replace(/\n?$/, "\n") + "```\n";
-			// AtCoder 会同时保留高亮代码块和隐藏的原始复制块，只转换后者以避免重复且保留换行。
-			if (node.classList.contains('prettyprint')) {
-				const sourceCode = $(node).nextAll('pre').first().filter('.source-code-for-copy');
-				if (sourceCode.length > 0) return "";
-				const code = OJB_getCodeFromPre(node) || node.textContent;
-				return toFencedCode(code);
-			}
-			if (node.classList.contains('source-code-for-copy')) {
-				return toFencedCode(node.textContent);
-			}
-			return toFencedCode(content);
 		}
 	});
 
@@ -114,6 +87,8 @@ async function initHTML2MarkDown() {
 */
 
 //----main----
+
+const turndownServer = new TurndownService();
 
 InitTurndown();
 
