@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name		Easier YCOJ
-// @version		0.2.1
+// @version		0.2.0
 // @description 让 YCOJ 用起来更加顺手
 // @author		zhizhi_c
 // @match		*://10.1.143.118/*
@@ -28,24 +28,6 @@ function InitTurndown() {
 	turndownServer.addRule('block-code', {
 		filter: node => { return node.nodeName === 'PRE' },
 		replacement: (content, node) => {
-			// const code = node.querySelector('code'); // 获取内部的 code 元素
-			// if (!code) return ''; // 使用 textContent 获取纯文本，并去除首尾多余换行/空格
-			// let codeText = code.textContent;
-			// // 去除每行开头多余的缩进（如果整个块缩进过多，可以整体 trim）
-			// // 方法：按行分割，计算最小缩进，然后统一去除
-			// const lines = codeText.split('\n');
-			// // 去除空行或仅空白行
-			// const nonEmptyLines = lines.filter(line => line.trim() !== '');
-			// if (nonEmptyLines.length === 0) return '```\n\n```';
-			// // 计算最小缩进（空格数）
-			// const minIndent = Math.min(...nonEmptyLines.map(line => line.match(/^ */)[0].length));
-			// // 去除每行的缩进
-			// const dedentedLines = lines.map(line => {
-			// 	if (line.trim() === '') return '';
-			// 	return line.slice(minIndent);
-			// });
-			// const cleanedCode = dedentedLines.join('\n').trim();
-			// // 返回围栏代码块
 			return '\n```\n' + node.textContent.trim() + '\n```\n';
 		}
 	});
